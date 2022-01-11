@@ -1,0 +1,14 @@
+<div class="carousel-container" [class.swipe-available]="swipeByMouse">
+  <div class="carousel-cells"
+       [style.transform]="getCellsContainerTransform()"
+       [style.transition-duration]="movementX !== 0 ? '0s' : transition + 'ms'"
+       (cdkObserveContent)="contentChanged()"
+       #cells
+  >
+    <ng-content select="carousel-cells"></ng-content>
+  </div>
+</div>
+<div class="carousel-arrows" *ngIf="arrows">
+  <div class="carousel-arrow carousel-arrow-prev" [class.carousel-arrow-disabled]="!prevAvailable()" (click)="prev()"></div>
+  <div class="carousel-arrow carousel-arrow-next" [class.carousel-arrow-disabled]="!nextAvailable()" (click)="next()"></div>
+</div>

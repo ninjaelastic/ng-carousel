@@ -3,6 +3,14 @@
   "compileOnSave": false,
   "compilerOptions": {
     "baseUrl": "./",
+    "paths": {
+      "carousel": [
+        "dist/carousel/carousel",
+        "dist/carousel",
+        "dist/carousel/carousel",
+        "dist/carousel"
+      ]
+    },
     "outDir": "./dist/out-tsc",
     "forceConsistentCasingInFileNames": true,
     "strict": true,
