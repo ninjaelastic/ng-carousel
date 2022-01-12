@@ -243,6 +243,7 @@ export class CarouselComponent implements AfterViewInit {
   }
 
   contentChanged() {
+    console.log('changed')
     this.setHtmlStylesToSlides();
     if (this.active > this.cellsTranslateX.length - 1) {
       this.active = this.cellsTranslateX.length - 1;
@@ -251,7 +252,7 @@ export class CarouselComponent implements AfterViewInit {
 
   private setHtmlStylesToSlides() {
     this.cellsTranslateX = [];
-    const cells = this.cellsRef.nativeElement.querySelectorAll('.ngx-magic-carousel-cell') as unknown as HTMLElement[];
+    const cells = this.cellsRef.nativeElement.querySelectorAll('.carousel-cell') as unknown as HTMLElement[];
     if (this.cellsToShow) {
       this.calculateCellWidth();
     }
