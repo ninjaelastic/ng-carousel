@@ -243,7 +243,6 @@ export class CarouselComponent implements AfterViewInit {
   }
 
   contentChanged() {
-    console.log('changed')
     this.setHtmlStylesToSlides();
     if (this.active > this.cellsTranslateX.length - 1) {
       this.active = this.cellsTranslateX.length - 1;

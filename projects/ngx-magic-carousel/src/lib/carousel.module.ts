@@ -9,10 +9,10 @@ import {ObserversModule} from "@angular/cdk/observers";
   declarations: [
     CarouselComponent
   ],
-  imports: [CommonModule],
+  imports: [CommonModule,
+    ObserversModule],
   exports: [
-    CarouselComponent,
-    ObserversModule
+    CarouselComponent
   ]
 })
 export class CarouselModule { }
