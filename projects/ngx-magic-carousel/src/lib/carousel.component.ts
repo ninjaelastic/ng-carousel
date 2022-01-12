@@ -18,7 +18,7 @@ import { distinctUntilChanged, filter, takeUntil, tap } from 'rxjs/operators';
 
 @UntilDestroy()
 @Component({
-  selector: 'gp-carousel',
+  selector: 'gp-ngx-magic-carousel',
   templateUrl: './carousel.component.html',
   styleUrls: ['./carousel.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -101,7 +101,7 @@ export class CarouselComponent implements AfterViewInit {
   protected hostWidth = 0;
   protected pointerMove$ = new Subject<PointerPosition>();
   protected pointerDown$ = new Subject<PointerPosition>();
-  protected pointerUp$ = new Subject<PointerPosition>();
+  protected pointerUp$ = new Subject();
   protected pointerDown = false;
   protected touchEvent!: TouchEvent;
 
@@ -210,7 +210,7 @@ export class CarouselComponent implements AfterViewInit {
     fromEvent<TouchEvent>(this.cellsRef.nativeElement, 'touchend')
       .pipe(untilDestroyed(this))
       .subscribe(() => {
-        this.pointerUp$.next();
+        this.pointerUp$.next(undefined);
       });
   }
 
@@ -251,7 +251,7 @@ export class CarouselComponent implements AfterViewInit {
 
   private setHtmlStylesToSlides() {
     this.cellsTranslateX = [];
-    const cells = this.cellsRef.nativeElement.querySelectorAll('.carousel-cell') as unknown as HTMLElement[];
+    const cells = this.cellsRef.nativeElement.querySelectorAll('.ngx-magic-carousel-cell') as unknown as HTMLElement[];
     if (this.cellsToShow) {
       this.calculateCellWidth();
     }
@@ -315,7 +315,7 @@ export class CarouselComponent implements AfterViewInit {
   }
 
   private emitTransitionEvent() {
-    this.eventSlideTo$.next();
+    this.eventSlideTo$.next(undefined);
     timer(this.transition)
       .pipe(takeUntil(this.eventSlideTo$), untilDestroyed(this))
       .subscribe(() => {

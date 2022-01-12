@@ -1,5 +1,5 @@
 /*
- * Public API Surface of carousel
+ * Public API Surface of ngx-magic-carousel
  */
 
 export * from './lib/carousel.service';

@@ -4,11 +4,9 @@
   "compilerOptions": {
     "baseUrl": "./",
     "paths": {
-      "carousel": [
-        "dist/carousel/carousel",
-        "dist/carousel",
-        "dist/carousel/carousel",
-        "dist/carousel"
+      "ngx-magic-carousel": [
+        "dist/ngx-magic-carousel/ngx-magic-carousel",
+        "dist/ngx-magic-carousel"
       ]
     },
     "outDir": "./dist/out-tsc",

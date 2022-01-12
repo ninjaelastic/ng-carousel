@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { CarouselComponent } from './carousel.component';
 import {CommonModule} from "@angular/common";
+import {ObserversModule} from "@angular/cdk/observers";
 
 
 
@@ -10,7 +11,8 @@ import {CommonModule} from "@angular/common";
   ],
   imports: [CommonModule],
   exports: [
-    CarouselComponent
+    CarouselComponent,
+    ObserversModule
   ]
 })
 export class CarouselModule { }
