@@ -110,7 +110,6 @@
       "projectType": "library",
       "root": "projects/ngx-magic-carousel",
       "sourceRoot": "projects/ngx-magic-carousel/src",
-      "prefix": "gp",
       "architect": {
         "build": {
           "builder": "@angular-devkit/build-angular:ng-packagr",

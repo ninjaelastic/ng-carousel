@@ -1,21 +1,24 @@
 
 <router-outlet></router-outlet>
 
-<gp-ngx-magic-carousel
+<ngx-magic-carousel
   [height]="350"
   [cellWidth]="260"
   [margin]="16"
   [marginFirst]="16"
   [marginLast]="16"
   [transition]="300"
-  #gamesCarousel
+  [arrows]="true"
+  [swipeByMouse]="true"
+  (events)="onEvent($event)"
+  #carousel
 >
   <ng-container ngProjectAs="carousel-cells">
-    <div class="carousel-cell" *ngFor="let game of arr; index as i">
-      {{game}}
+    <div class="carousel-cell" *ngFor="let slide of slides; index as i" [style.background-image]="'url(' + slide + ')'" style="height: 100%" (click)="clickHandler(slide)">
     </div>
   </ng-container>
-</gp-ngx-magic-carousel>
+</ngx-magic-carousel>
 
 
-<button (click)="removeFirst()">remove first</button>
+<button (click)="removeFirst()" style="margin-top: 15px;">remove first</button>
+

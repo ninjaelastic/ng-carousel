@@ -1,24 +1,44 @@
-# Carousel
+[Live Demo](https://stackblitz.com/edit/angular-ivy-5gg843?file=src/app/app.component.html)
 
-This library was generated with [Angular CLI](https://github.com/angular/angular-cli) version 12.2.0.
+## How to install
 
-## Code scaffolding
+```
+npm i ngx-magic-carousel
+```
 
-Run `ng generate component component-name --project carousel` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module --project carousel`.
-> Note: Don't forget to add `--project carousel` or else it will be added to the default project in your `angular.json` file. 
 
-## Build
+## Usage
 
-Run `ng build carousel` to build the project. The build artifacts will be stored in the `dist/` directory.
+Add CarouselModule to imports from "ngx-magic-carousel".
+```typescript
+import { CarouselModule } from 'ngx-magic-carousel';
 
-## Publishing
+...
 
-After building your library with `ng build carousel`, go to the dist folder `cd dist/carousel` and run `npm publish`.
+@NgModule({
+  declarations: [
+    AppComponent
+  ],
+  imports: [CarouselModule],
+  bootstrap: [AppComponent]
+})
+export class AppModule { }
+```
 
-## Running unit tests
-
-Run `ng test carousel` to execute the unit tests via [Karma](https://karma-runner.github.io).
-
-## Further help
-
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+And insert component to template
+```angular2html
+<ngx-magic-carousel
+  [height]="350"
+  [cellWidth]="260"
+  [margin]="16"
+  [marginFirst]="16"
+  [marginLast]="16"
+  [transition]="300"
+>
+  <ng-container ngProjectAs="carousel-cells">
+    <div class="carousel-cell" *ngFor="let slide of slides;">
+      {{slide.id}}
+    </div>
+  </ng-container>
+</ngx-magic-carousel>
+```
