@@ -2,13 +2,15 @@
 <router-outlet></router-outlet>
 
 <ngx-magic-carousel
-  [height]="350"
-  [cellWidth]="260"
-  [margin]="16"
-  [marginFirst]="16"
-  [marginLast]="16"
+  [height]="height"
+  [cellWidth]="width"
+  [margin]="margin"
+  [marginFirst]="first"
+  [marginLast]="last"
+  [cellsToShow]="cellsToShow"
   [transition]="300"
   [arrows]="true"
+  [hideArrowsByLimit]="true"
   [swipeByMouse]="true"
   (events)="onEvent($event)"
   #carousel
@@ -22,3 +24,17 @@
 
 <button (click)="removeFirst()" style="margin-top: 15px;">remove first</button>
 
+<p>first</p>
+<input type="number" #firstRef [value]="16"/>
+<p>margin</p>
+<input type="number" #marginRef [value]="16"/>
+<p>last</p>
+<input type="number" #lastRef [value]="16"/>
+<p>cell width</p>
+<input type="number" #cellWidthRef [value]="260"/>
+<p>height</p>
+<input type="number" #heightRef [value]="350"/>
+<p>cellsToShow</p>
+<input type="number" #cellToShowRef [value]="0"/>
+<p></p>
+<button (click)="change(firstRef.value, marginRef.value, lastRef.value, cellWidthRef.value, heightRef.value, cellToShowRef.value)">confirm</button>

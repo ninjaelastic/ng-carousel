@@ -7,9 +7,9 @@ import {
   EventEmitter,
   HostBinding,
   HostListener,
-  Input,
+  Input, OnChanges,
   Output,
-  Renderer2,
+  Renderer2, SimpleChanges,
   ViewChild,
 } from '@angular/core';
 import { fromEvent, Subject, timer } from 'rxjs';
@@ -23,7 +23,7 @@ import { distinctUntilChanged, filter, takeUntil, tap } from 'rxjs/operators';
   styleUrls: ['./carousel.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CarouselComponent implements AfterViewInit {
+export class CarouselComponent implements OnChanges, AfterViewInit {
   @Input() height = 0;
   @Input() cellWidth = 0;
   @Input() margin = 16;
@@ -33,50 +33,50 @@ export class CarouselComponent implements AfterViewInit {
   @Input() minSwipeDistance = 10;
   @Input() cellsToShow = 0;
   @Input() arrows = false;
+  @Input() hideArrowsByLimit = false;
   @Input() swipeByMouse = false;
-  @Output() protected events = new EventEmitter<CarouselEvent>();
-  @ViewChild('cells')
-  private cellsRef!: ElementRef<HTMLElement>;
-  @HostBinding('style.height') protected get hostHeight() {
-    return `${this.height}px`;
+  @Output() private events = new EventEmitter<CarouselEvent>();
+  @ViewChild('cellsRef', {static: true}) private cellsRef!: ElementRef<HTMLElement>;
+  @HostBinding('style.height.px') private get hostHeight() {
+    return this.height;
   }
-  @HostListener('window:resize') protected onResize() {
+  @HostListener('window:resize') private onResize() {
     if (this.elementRef.nativeElement.offsetWidth !== this.hostWidth) {
       this.hostWidth = this.elementRef.nativeElement.offsetWidth;
-      this.setHtmlStylesToSlides();
-      this.calculateSlidesInView();
+      this.contentChanged()
     }
   }
-  @HostListener('window:mousemove', ['$event']) protected onMouseMove($event: MouseEvent) {
-    if (!this.swipeByMouse) return;
-    const { clientX, clientY, screenX, screenY } = $event;
-    this.pointerMove$.next({ clientX, clientY, screenX, screenY });
+
+  @HostListener('window:mousemove', ['$event']) private onMouseMove($event: MouseEvent) {
+    this.mouseHandler($event, this.pointerMove$);
   }
-  @HostListener('mousedown', ['$event']) protected onMouseDown($event: MouseEvent) {
-    if (!this.swipeByMouse) return;
-    const { clientX, clientY, screenX, screenY } = $event;
-    this.pointerDown$.next({ clientX, clientY, screenX, screenY });
+  @HostListener('mousedown', ['$event']) private onMouseDown($event: MouseEvent) {
+    this.mouseHandler($event, this.pointerDown$);
   }
-  @HostListener('window:mouseup', ['$event']) protected onMouseUp($event: MouseEvent) {
+  @HostListener('window:mouseup', ['$event']) private onMouseUp($event: MouseEvent) {
+    this.mouseHandler($event, this.pointerUp$,);
+  }
+
+  private mouseHandler($event: MouseEvent, subject: Subject<PointerPosition>) {
     if (!this.swipeByMouse) return;
     const { clientX, clientY, screenX, screenY } = $event;
-    this.pointerUp$.next({ clientX, clientY, screenX, screenY });
+    subject.next({ clientX, clientY, screenX, screenY })
   }
 
   get movementX() {
     return Math.round(this.touchEnd.x - this.touchStart.x);
   }
 
-  set active(active: number) {
+  private set active(active: number) {
     this.cd.markForCheck();
-    if (active >= this.cellsTranslateX.length - 1 && this.isLastTransform()) {
-      this.activeIndex = this.cellsTranslateX.length - 1;
-      console.warn('Active index more than possible.');
+    if (active >= this.cells.length - 1 && this.isLastTransform()) {
+      this.activeIndex = this.cells.length - 1;
+      console.warn('Active index greater than possible.');
       return;
     }
     if (active < 0 ) {
-      this.activeIndex = this.cellsTranslateX.length - 1;
-      console.warn('Active index less than spossible.');
+      this.activeIndex = this.cells.length - 1;
+      console.warn('Active index less than possible.');
       return;
     }
     this.activeIndex = active;
@@ -88,7 +88,7 @@ export class CarouselComponent implements AfterViewInit {
 
   private eventSlideTo$ = new Subject();
   private eventType!: CarouselEventType;
-  private cellsTranslateX: number[] = [];
+
   private touchStart = {
     x: 0,
     y: 0,
@@ -102,28 +102,34 @@ export class CarouselComponent implements AfterViewInit {
     x: 0,
     y: 0,
   };
-  protected hostWidth = 0;
-  protected pointerMove$ = new Subject<PointerPosition>();
-  protected pointerDown$ = new Subject<PointerPosition>();
-  protected pointerUp$ = new Subject<PointerPosition>();
-  protected pointerDown = false;
-  protected touchEvent!: TouchEvent;
-  protected slidesInView = 1;
+
+  private pointerMove$ = new Subject<PointerPosition>();
+  private pointerDown$ = new Subject<PointerPosition>();
+  private pointerUp$ = new Subject<PointerPosition>();
+  private touchEvent!: TouchEvent;
+  private pointerPressed = false;
+  private hostWidth = 0;
+  private slidesInView = 1;
+  private cells: number[] = [];
+  private translateList: number[] = [];
 
   constructor(
-    protected readonly elementRef: ElementRef,
-    protected readonly renderer2: Renderer2,
-    protected readonly cd: ChangeDetectorRef,
+    private readonly elementRef: ElementRef,
+    private readonly renderer2: Renderer2,
+    private readonly cd: ChangeDetectorRef,
   ) {}
 
-  ngAfterViewInit() {
-    this.hostWidth = this.elementRef.nativeElement.offsetWidth;
-    if (this.cellsToShow) {
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes.cellsToShow?.currentValue) {
       this.cellWidth = 0;
       this.marginLast = 0;
       this.marginFirst = 0;
-      this.slidesInView = this.cellsToShow;
     }
+    this.contentChanged();
+  }
+
+  ngAfterViewInit() {
+    this.hostWidth = this.elementRef.nativeElement.offsetWidth;
     this.onTouchstart();
     this.onTouchmove();
     this.onTouchend();
@@ -135,13 +141,13 @@ export class CarouselComponent implements AfterViewInit {
     fromEvent<TouchEvent>(this.cellsRef.nativeElement, 'touchstart')
       .pipe(untilDestroyed(this))
       .subscribe((e: TouchEvent) => {
-        if (e.touches.length > 1 && !this.eventType || (this.movementX && this.pointerDown)) return
+        if (e.touches.length > 1 && !this.eventType || (this.movementX && this.pointerPressed)) return
         const { clientX, clientY, screenX, screenY } = e.touches[0];
         this.pointerDown$.next({ clientX, clientY, screenX, screenY });
       });
 
     this.pointerDown$.pipe(untilDestroyed(this)).subscribe(position => {
-      this.pointerDown = true;
+      this.pointerPressed = true;
       this.translateStart.x = this.translateX;
       this.touchStart.x = position.screenX;
       this.touchStart.y = position.screenY;
@@ -162,7 +168,7 @@ export class CarouselComponent implements AfterViewInit {
 
     this.pointerMove$
       .pipe(
-        filter(() => this.pointerDown),
+        filter(() => this.pointerPressed),
         distinctUntilChanged(),
         tap(position => {
           if (this.eventType === undefined) {
@@ -176,15 +182,10 @@ export class CarouselComponent implements AfterViewInit {
         untilDestroyed(this),
       )
       .subscribe((e: PointerPosition) => {
-        // const movement = Math.round(e.screenX - this.touchStart.x);
-        // console.log(movement)
-        // if (this.isLastTransform() && movement < - this.cellWidth * 0.5) return;
-        // if (this.swipeGreaterThanLast()) return;
-        // if (this.translateX < - this.cellWidth * 0.4) return;
         this.cd.markForCheck();
         this.touchEnd.x = e.screenX;
         this.touchEnd.y = e.screenY;
-        this.setTranslateX();
+        this.translateX = this.translateStart.x - this.movementX
         this.events.emit({ name: 'move' });
       });
   }
@@ -203,28 +204,17 @@ export class CarouselComponent implements AfterViewInit {
     }
   }
 
-  private setTranslateX() {
-    let multyply = 1;
-    if (this.translateX < this.cellsTranslateX[0] || this.swipeGreaterThanLast()) {
-      multyply = 0.3;
-    }
-    this.translateX = this.translateStart.x - this.movementX * multyply;
-  }
-
-  private swipeGreaterThanLast() {
-    return this.translateX > this.cellsTranslateX[this.cellsTranslateX.length - 1];
-  }
-
   private onTouchend() {
     this.pointerUp$.pipe(untilDestroyed(this)).subscribe((e) => {
-      this.pointerDown = false;
       this.cd.markForCheck();
+      this.pointerPressed = false;
       if (Math.abs(this.movementX) >= this.minSwipeDistance) {
         this.goToNearestSlide();
       }
       this.touchStart = { x: 0, y: 0 };
       this.touchEnd = { x: 0, y: 0 };
       this.eventType = undefined;
+      this.active = this.activeIndex;
       this.events.emit({ name: 'touchEnd' });
     });
 
@@ -238,7 +228,7 @@ export class CarouselComponent implements AfterViewInit {
 
   private goToNearestSlide() {
     const nearestIndex = this.getNearestSlideIndex();
-    if (nearestIndex === this.active) {
+    if (nearestIndex === this.active && this.translateX < this.translateList[this.translateList.length - 1]) {
       if (this.movementX < 0) {
         this.next();
       } else if (this.movementX > 0) {
@@ -252,9 +242,9 @@ export class CarouselComponent implements AfterViewInit {
   }
 
   private getNearestSlideIndex() {
-    let minimalDistance = this.cellsTranslateX[this.cellsTranslateX.length - 1];
+    let minimalDistance = this.translateList[this.translateList.length - 1];
     let result = 0;
-    this.cellsTranslateX.forEach((translate, i) => {
+    this.translateList.forEach((translate, i) => {
       const distanceToCurrentSlide = Math.abs(translate - this.translateX);
       if (distanceToCurrentSlide < minimalDistance) {
         minimalDistance = distanceToCurrentSlide;
@@ -265,18 +255,18 @@ export class CarouselComponent implements AfterViewInit {
   }
 
   contentChanged() {
-    this.calculateSlidesInView();
     this.setHtmlStylesToSlides();
-    if (this.active > this.cellsTranslateX.length - 1) {
-      this.active = this.cellsTranslateX.length - 1;
-    }
     this.calculateSlidesInView();
+    this.calculateTranslateList();
+    if (this.active > this.translateList.length - 1) {
+      this.active = this.translateList.length - 1;
+    }
     this.cd.detectChanges()
   }
 
-  protected calculateSlidesInView() {
-    for (let i = this.cellsTranslateX.length - 1; i >= 0; i--) {
-      if (this.cellsRef.nativeElement.offsetWidth - this.cellsTranslateX[i] + this.marginLast >= 0) {
+  private calculateSlidesInView() {
+    for (let i = this.cells.length - 1; i >= 0; i--) {
+      if (this.cellsRef.nativeElement.offsetWidth - this.cells[i] + this.marginLast >= 0) {
         this.slidesInView = i;
         return;
       }
@@ -284,7 +274,7 @@ export class CarouselComponent implements AfterViewInit {
   }
 
   private setHtmlStylesToSlides() {
-    this.cellsTranslateX = [];
+    this.cells = [];
     const cells = this.cellsRef.nativeElement.querySelectorAll('.carousel-cell') as unknown as HTMLElement[];
     if (this.cellsToShow) {
       this.calculateCellWidth();
@@ -311,35 +301,39 @@ export class CarouselComponent implements AfterViewInit {
     if (i === 0) {
       translateX += this.marginFirst;
     } else {
-      translateX = this.cellsTranslateX[i - 1] + this.cellWidth;
+      translateX = this.cells[i - 1] + this.cellWidth;
       translateX += this.margin;
     }
 
-    this.cellsTranslateX[i] = translateX;
+    this.cells[i] = translateX;
     this.renderer2.setStyle(el, 'transform', `translateX(${translateX}px)`);
+  }
+
+  private calculateTranslateList() {
+    this.translateList = [this.cells[0] - this.marginFirst];
+    for (let i = 0; i < this.cells.length; i++) {
+      if (i + this.slidesInView >= this.cells.length - 1) {
+        let t = this.cells[this.cells.length - 1];
+        const totalWidth = this.cellsRef.nativeElement.offsetWidth;
+        t -= totalWidth - this.cellWidth - this.marginLast;
+        if (t > 0) this.translateList.push(t)
+        return;
+      }
+      const nextCellTranslate = this.cells[i + 1] - (!this.cellsToShow ? this.margin : 0);
+      this.translateList.push(nextCellTranslate)
+    }
   }
 
   getCellsContainerTransform() {
     if (!this.movementX) {
-      this.translateX = this.cellsTranslateX[this.active];
-      if (this.active === 0) {
-        this.translateX -= this.marginFirst;
-      } else if (this.isLastTransform()) {
-        // console.log('last')
-        this.translateX = this.cellsTranslateX[this.cellsTranslateX.length - 1];
-        const totalWidth = this.cellsRef.nativeElement.offsetWidth;
-        this.translateX -= totalWidth - this.cellWidth - this.marginLast;
-      } else if (this.marginFirst) {
-        // console.log('ssss')
-        this.translateX -= this.margin;
-      }
+      this.translateX = this.translateList[this.active];
     }
-    // console.log(-this.translateX)
     return `translateX(${-this.translateX}px)`;
   }
 
-  protected isLastTransform() {
-    return this.active + 1 + this.slidesInView > this.cellsTranslateX.length
+  private isLastTransform() {
+    // return this.active + 1 + this.slidesInView > this.cellsTranslateX.length
+    return this.active + 1  > this.cells.length
   }
 
   prev() {
@@ -370,12 +364,7 @@ export class CarouselComponent implements AfterViewInit {
   }
 
   nextAvailable() {
-    if (this.isLastTransform()) return false;
-    const nextActive = this.active + 1;
-    if (this.cellsToShow) {
-      return nextActive + this.slidesInView < this.cellsTranslateX.length;
-    }
-    return nextActive + this.slidesInView <= this.cellsTranslateX.length ;
+    return this.translateX !== this.translateList[this.translateList.length - 1];
   }
 }
 

@@ -35,4 +35,19 @@ export class AppComponent {
   clickHandler(str: string) {
     console.log(str)
   }
+
+  first = 16;
+  last = 16;
+  margin = 16;
+  width =  260
+  height =  350
+  cellsToShow = 0
+  change(first: string, margin: string, last: string, width: string, height: string, cellsToShow: string) {
+    this.first = Number(first)
+    this.last = Number(last)
+    this.margin = Number(margin)
+    this.width = Number(width)
+    this.height = Number(height)
+    this.cellsToShow = Number(cellsToShow)
+  }
 }
