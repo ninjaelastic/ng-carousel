@@ -69,13 +69,13 @@ export class CarouselComponent implements OnChanges, AfterViewInit {
 
   private set active(active: number) {
     this.cd.markForCheck();
-    if (active >= this.cells.length - 1 && this.isLastTransform()) {
-      this.activeIndex = this.cells.length - 1;
+    if (active > this.translateList.length - 1) {
+      this.activeIndex = this.translateList.length - 1;
       console.warn('Active index greater than possible.');
       return;
     }
     if (active < 0 ) {
-      this.activeIndex = this.cells.length - 1;
+      this.activeIndex = 0;
       console.warn('Active index less than possible.');
       return;
     }
@@ -331,11 +331,6 @@ export class CarouselComponent implements OnChanges, AfterViewInit {
     return `translateX(${-this.translateX}px)`;
   }
 
-  private isLastTransform() {
-    // return this.active + 1 + this.slidesInView > this.cellsTranslateX.length
-    return this.active + 1  > this.cells.length
-  }
-
   prev() {
     if (!this.prevAvailable()) return;
     this.active -= 1;
@@ -364,7 +359,15 @@ export class CarouselComponent implements OnChanges, AfterViewInit {
   }
 
   nextAvailable() {
-    return this.translateX !== this.translateList[this.translateList.length - 1];
+    return this.translateX < this.translateList[this.translateList.length - 1];
+  }
+
+  nextCanBeShown() {
+    if (this.hideArrowsByLimit) {
+      if (!this.nextAvailable()) return false;
+      if (this.movementX && this.active === this.translateList.length - 1) return false;
+    }
+    return true;
   }
 }
 
