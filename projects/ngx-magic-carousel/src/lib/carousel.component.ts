@@ -183,10 +183,23 @@ export class CarouselComponent implements OnChanges, AfterViewInit {
       )
       .subscribe((e: PointerPosition) => {
         this.cd.markForCheck();
+        let multyply = 1;
+        const movement = Math.round(e.screenX - this.touchStart.x);
+        if (this.translateX < this.translateList[0]) {
+          if (this.translateX <= this.translateList[0] - this.cellWidth / 2 && movement > this.cellWidth / 2) {
+            return;
+          }
+        }
+        else if (this.translateX > this.translateList[this.translateList.length - 1]) {
+          if (this.translateX >= this.translateList[this.translateList.length - 1] - this.cellWidth / 2 && movement < - this.cellWidth / 2) {
+            return;
+          }
+        }
         this.touchEnd.x = e.screenX;
         this.touchEnd.y = e.screenY;
-        this.translateX = this.translateStart.x - this.movementX
+        this.translateX = this.translateStart.x - this.movementX * multyply
         this.events.emit({ name: 'move' });
+        this.cd.detectChanges()
       });
   }
 
@@ -205,7 +218,7 @@ export class CarouselComponent implements OnChanges, AfterViewInit {
   }
 
   private onTouchend() {
-    this.pointerUp$.pipe(untilDestroyed(this)).subscribe((e) => {
+    this.pointerUp$.pipe(untilDestroyed(this)).subscribe(() => {
       this.cd.markForCheck();
       this.pointerPressed = false;
       if (Math.abs(this.movementX) >= this.minSwipeDistance) {
