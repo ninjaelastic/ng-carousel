@@ -67,7 +67,7 @@ export class CarouselComponent implements OnChanges, AfterViewInit {
     return Math.round(this.touchEnd.x - this.touchStart.x);
   }
 
-  private set active(active: number) {
+  set active(active: number) {
     this.cd.markForCheck();
     if (active > this.translateList.length - 1) {
       this.activeIndex = this.translateList.length - 1;
@@ -112,6 +112,7 @@ export class CarouselComponent implements OnChanges, AfterViewInit {
   private slidesInView = 1;
   private cells: number[] = [];
   private translateList: number[] = [];
+  private touches = 0;
 
   constructor(
     private readonly elementRef: ElementRef,
@@ -139,7 +140,7 @@ export class CarouselComponent implements OnChanges, AfterViewInit {
 
   private onTouchstart() {
     fromEvent<TouchEvent>(this.cellsRef.nativeElement, 'touchstart')
-      .pipe(untilDestroyed(this))
+      .pipe(tap((e) => this.touches = e.touches.length), untilDestroyed(this))
       .subscribe((e: TouchEvent) => {
         if (e.touches.length > 1 && !this.eventType || (this.movementX && this.pointerPressed)) return
         const { clientX, clientY, screenX, screenY } = e.touches[0];
@@ -159,7 +160,7 @@ export class CarouselComponent implements OnChanges, AfterViewInit {
 
   private onTouchmove() {
     fromEvent<TouchEvent>(this.cellsRef.nativeElement, 'touchmove')
-      .pipe(distinctUntilChanged(), untilDestroyed(this))
+      .pipe(distinctUntilChanged(), filter(e => e.touches.length === 1), untilDestroyed(this))
       .subscribe((e: TouchEvent) => {
         this.touchEvent = e;
         const { clientX, clientY, screenX, screenY } = e.touches[0];
@@ -232,7 +233,7 @@ export class CarouselComponent implements OnChanges, AfterViewInit {
     });
 
     fromEvent<TouchEvent>(this.cellsRef.nativeElement, 'touchend')
-      .pipe(untilDestroyed(this))
+      .pipe(tap(() => this.touches -= 1), filter(e => this.touches === 0), untilDestroyed(this))
       .subscribe((e) => {
         const { clientX, clientY, screenX, screenY } = e.changedTouches[0];
         this.pointerUp$.next({ clientX, clientY, screenX, screenY });

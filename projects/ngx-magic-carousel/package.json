@@ -1,6 +1,6 @@
 {
   "name": "ngx-magic-carousel",
-  "version": "0.2.1",
+  "version": "0.2.3",
   "description": "A simple responsive carousel component with custom first/last margins for Angular 12+",
   "keywords": ["angular", "angular2", "ng", "ngx", "ng2", "component", "ng2-carousel", "carousel", "ngx-carousel"],
   "peerDependencies": {
