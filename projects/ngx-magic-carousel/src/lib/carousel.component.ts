@@ -7,14 +7,16 @@ import {
   EventEmitter,
   HostBinding,
   HostListener,
-  Input, OnChanges,
+  Input,
+  OnChanges,
   Output,
-  Renderer2, SimpleChanges,
+  Renderer2,
+  SimpleChanges,
   ViewChild,
 } from '@angular/core';
-import { fromEvent, Subject, timer } from 'rxjs';
-import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { distinctUntilChanged, filter, takeUntil, tap } from 'rxjs/operators';
+import {fromEvent, Subject, timer} from 'rxjs';
+import {UntilDestroy, untilDestroyed} from '@ngneat/until-destroy';
+import {distinctUntilChanged, filter, takeUntil, tap} from 'rxjs/operators';
 
 @UntilDestroy()
 @Component({
@@ -112,7 +114,7 @@ export class CarouselComponent implements OnChanges, AfterViewInit {
   private slidesInView = 1;
   private cells: number[] = [];
   private translateList: number[] = [];
-  private touches = 0;
+  private touchIdentifier = 0;
 
   constructor(
     private readonly elementRef: ElementRef,
@@ -140,9 +142,11 @@ export class CarouselComponent implements OnChanges, AfterViewInit {
 
   private onTouchstart() {
     fromEvent<TouchEvent>(this.cellsRef.nativeElement, 'touchstart')
-      .pipe(tap((e) => this.touches = e.touches.length), untilDestroyed(this))
+      .pipe(untilDestroyed(this))
       .subscribe((e: TouchEvent) => {
-        if (e.touches.length > 1 && !this.eventType || (this.movementX && this.pointerPressed)) return
+        if (e.touches.length > 1 && !this.eventType || (this.movementX && this.pointerPressed)) return;
+        this.touchIdentifier = e.touches[0].identifier;
+
         const { clientX, clientY, screenX, screenY } = e.touches[0];
         this.pointerDown$.next({ clientX, clientY, screenX, screenY });
       });
@@ -160,8 +164,9 @@ export class CarouselComponent implements OnChanges, AfterViewInit {
 
   private onTouchmove() {
     fromEvent<TouchEvent>(this.cellsRef.nativeElement, 'touchmove')
-      .pipe(distinctUntilChanged(), filter(e => e.touches.length === 1), untilDestroyed(this))
+      .pipe(distinctUntilChanged(), untilDestroyed(this))
       .subscribe((e: TouchEvent) => {
+
         this.touchEvent = e;
         const { clientX, clientY, screenX, screenY } = e.touches[0];
         this.pointerMove$.next({ clientX, clientY, screenX, screenY });
@@ -233,8 +238,9 @@ export class CarouselComponent implements OnChanges, AfterViewInit {
     });
 
     fromEvent<TouchEvent>(this.cellsRef.nativeElement, 'touchend')
-      .pipe(tap(() => this.touches -= 1), filter(e => this.touches === 0), untilDestroyed(this))
+      .pipe(untilDestroyed(this))
       .subscribe((e) => {
+        if (e.changedTouches[0].identifier !== this.touchIdentifier) return;
         const { clientX, clientY, screenX, screenY } = e.changedTouches[0];
         this.pointerUp$.next({ clientX, clientY, screenX, screenY });
       });

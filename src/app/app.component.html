@@ -15,10 +15,8 @@
   (events)="onEvent($event)"
   #carousel
 >
-  <ng-container ngProjectAs="carousel-cells">
     <div class="carousel-cell" *ngFor="let slide of slides; index as i" [style.background-image]="'url(' + slide + ')'" style="height: 100%" (click)="clickHandler(slide)">
     </div>
-  </ng-container>
 </ngx-magic-carousel>
 
 

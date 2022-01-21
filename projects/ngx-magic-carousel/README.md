@@ -35,10 +35,8 @@ And insert component to template
   [marginLast]="16"
   [transition]="300"
 >
-  <ng-container ngProjectAs="carousel-cells">
-    <div class="carousel-cell" *ngFor="let slide of slides;">
-      {{slide.id}}
-    </div>
-  </ng-container>
+  <div class="carousel-cell" *ngFor="let slide of slides;">
+    {{slide.id}}
+  </div>
 </ngx-magic-carousel>
 ```
