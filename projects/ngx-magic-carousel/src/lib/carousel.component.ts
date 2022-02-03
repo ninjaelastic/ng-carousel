@@ -135,9 +135,14 @@ export class CarouselComponent implements OnChanges, AfterViewInit {
 
   ngAfterViewInit() {
     this.hostWidth = this.elementRef.nativeElement.offsetWidth;
-    this.onTouchstart();
-    this.onTouchmove();
-    this.onTouchend();
+    if ('ontouchstart' in window) {
+      this.onTouchstart();
+      this.onTouchmove();
+      this.onTouchend();
+    }
+    this.subscribeToPointerDown();
+    this.subscribeToPointerMove();
+    this.subscribeToPointerUp();
     this.contentChanged();
     this.events.emit({name: 'ready'})
   }
@@ -161,7 +166,30 @@ export class CarouselComponent implements OnChanges, AfterViewInit {
         const { clientX, clientY, screenX, screenY } = e.touches[0];
         this.pointerDown$.next({ clientX, clientY, screenX, screenY });
       });
+  }
 
+  private onTouchmove() {
+    fromEvent<TouchEvent>(this.cellsRef.nativeElement, 'touchmove')
+      .pipe(distinctUntilChanged(), untilDestroyed(this))
+      .subscribe((e: TouchEvent) => {
+        this.touchEvent = e;
+        const { clientX, clientY, screenX, screenY } = e.touches[0];
+        this.pointerMove$.next({ clientX, clientY, screenX, screenY });
+      });
+  }
+
+  private onTouchend() {
+    fromEvent<TouchEvent>(this.cellsRef.nativeElement, 'touchend')
+      .pipe(untilDestroyed(this))
+      .subscribe((e) => {
+        if (e.changedTouches[0].identifier !== this.touchIdentifier) return;
+        this.touchEvent = e;
+        const { clientX, clientY, screenX, screenY } = e.changedTouches[0];
+        this.pointerUp$.next({ clientX, clientY, screenX, screenY });
+      });
+  }
+
+  private subscribeToPointerDown() {
     this.pointerDown$.pipe(untilDestroyed(this)).subscribe(position => {
       this.pointerPressed = true;
       this.translateStart.x = this.translateX;
@@ -173,21 +201,13 @@ export class CarouselComponent implements OnChanges, AfterViewInit {
     });
   }
 
-  private onTouchmove() {
-    fromEvent<TouchEvent>(this.cellsRef.nativeElement, 'touchmove')
-      .pipe(distinctUntilChanged(), untilDestroyed(this))
-      .subscribe((e: TouchEvent) => {
-
-        this.touchEvent = e;
-        const { clientX, clientY, screenX, screenY } = e.touches[0];
-        this.pointerMove$.next({ clientX, clientY, screenX, screenY });
-      });
-
+  private subscribeToPointerMove() {
     this.pointerMove$
       .pipe(
         filter(() => this.pointerPressed),
         distinctUntilChanged(),
         tap(position => {
+          this.cd.markForCheck()
           this.touchEnd.x = position.screenX;
           this.touchEnd.y = position.screenY;
           if (this.eventType === undefined) {
@@ -203,8 +223,6 @@ export class CarouselComponent implements OnChanges, AfterViewInit {
       .subscribe((e: PointerPosition) => {
         this.cd.markForCheck();
         if(this.greaterThanLimit(e)) return;
-        // this.touchEnd.x = e.screenX;
-        // this.touchEnd.y = e.screenY;
         let multyply = 1;
         this.translateX = this.translateStart.x - this.movementX * multyply
         this.events.emit({ name: 'move' });
@@ -212,17 +230,27 @@ export class CarouselComponent implements OnChanges, AfterViewInit {
       });
   }
 
+  private subscribeToPointerUp() {
+    this.pointerUp$.pipe(untilDestroyed(this)).subscribe(() => {
+      this.cd.markForCheck();
+      this.pointerPressed = false;
+      if (Math.abs(this.movementX) >= this.minSwipeDistance && this.eventType === 'horizontal-swipe') {
+        this.goToNearestSlide();
+      }
+      this.touchStart = { x: 0, y: 0 };
+      this.touchEnd = { x: 0, y: 0 };
+      this.eventType = undefined;
+      this.active = this.activeIndex;
+      this.events.emit({ name: 'touchEnd' });
+    });
+  }
 
   private getLinearSwipeType(position: PointerPosition) {
     if (this.eventType !== 'horizontal-swipe' && this.eventType !== 'vertical-swipe') {
+      if (!this.touchEvent) return 'horizontal-swipe'
       const movementX = Math.abs(position.screenX - this.touchStart.x);
       const movementY = Math.abs(position.screenY - this.touchStart.y);
       return movementX / movementY >= 1 ? 'horizontal-swipe' : 'vertical-swipe';
-      // if (movementY * 4 > movementX) {
-      //   return 'vertical-swipe';
-      // } else {
-      //   return 'horizontal-swipe';
-      // }
     } else {
       return this.eventType;
     }
@@ -241,30 +269,6 @@ export class CarouselComponent implements OnChanges, AfterViewInit {
       }
     }
     return false;
-  }
-
-  private onTouchend() {
-    this.pointerUp$.pipe(untilDestroyed(this)).subscribe(() => {
-      this.cd.markForCheck();
-      this.pointerPressed = false;
-      if (Math.abs(this.movementX) >= this.minSwipeDistance && this.eventType === 'horizontal-swipe') {
-        this.goToNearestSlide();
-      }
-      this.touchStart = { x: 0, y: 0 };
-      this.touchEnd = { x: 0, y: 0 };
-      this.eventType = undefined;
-      this.active = this.activeIndex;
-      this.events.emit({ name: 'touchEnd' });
-    });
-
-    fromEvent<TouchEvent>(this.cellsRef.nativeElement, 'touchend')
-      .pipe(untilDestroyed(this))
-      .subscribe((e) => {
-        if (e.changedTouches[0].identifier !== this.touchIdentifier) return;
-        this.touchEvent = e;
-        const { clientX, clientY, screenX, screenY } = e.changedTouches[0];
-        this.pointerUp$.next({ clientX, clientY, screenX, screenY });
-      });
   }
 
   private goToNearestSlide() {
