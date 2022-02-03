@@ -115,6 +115,8 @@ export class CarouselComponent implements OnChanges, AfterViewInit {
   private cells: number[] = [];
   private translateList: number[] = [];
   private touchIdentifier = 0;
+  private timeFirstTouch = 0;
+  private maxDelayBetweenTouches = 500;
 
   constructor(
     private readonly elementRef: ElementRef,
@@ -144,8 +146,17 @@ export class CarouselComponent implements OnChanges, AfterViewInit {
     fromEvent<TouchEvent>(this.cellsRef.nativeElement, 'touchstart')
       .pipe(untilDestroyed(this))
       .subscribe((e: TouchEvent) => {
-        if (e.touches.length > 1 && !this.eventType || (this.movementX && this.pointerPressed)) return;
+        const isPinchEvent = e.touches.length > 1 && !this.eventType;
+        const alreadyMoving = this.movementX && this.pointerPressed;
+        if (isPinchEvent || alreadyMoving) return;
         this.touchIdentifier = e.touches[0].identifier;
+        const now = Date.now();
+        if (e.touches.length === 1) {
+          this.timeFirstTouch = now;
+        }
+        if (e.touches.length > 1 && this.eventType !== 'horizontal-swipe' && now - this.timeFirstTouch <= this.maxDelayBetweenTouches) {
+          this.eventType = 'vertical-swipe'
+        }
 
         const { clientX, clientY, screenX, screenY } = e.touches[0];
         this.pointerDown$.next({ clientX, clientY, screenX, screenY });
@@ -177,6 +188,8 @@ export class CarouselComponent implements OnChanges, AfterViewInit {
         filter(() => this.pointerPressed),
         distinctUntilChanged(),
         tap(position => {
+          this.touchEnd.x = position.screenX;
+          this.touchEnd.y = position.screenY;
           if (this.eventType === undefined) {
             this.eventType = this.getLinearSwipeType(position);
           }
@@ -189,45 +202,52 @@ export class CarouselComponent implements OnChanges, AfterViewInit {
       )
       .subscribe((e: PointerPosition) => {
         this.cd.markForCheck();
+        if(this.greaterThanLimit(e)) return;
+        // this.touchEnd.x = e.screenX;
+        // this.touchEnd.y = e.screenY;
         let multyply = 1;
-        const movement = Math.round(e.screenX - this.touchStart.x);
-        if (this.translateX < this.translateList[0]) {
-          if (this.translateX <= this.translateList[0] - this.cellWidth / 2 && movement > this.cellWidth / 2) {
-            return;
-          }
-        }
-        else if (this.translateX > this.translateList[this.translateList.length - 1]) {
-          if (this.translateX >= this.translateList[this.translateList.length - 1] - this.cellWidth / 2 && movement < - this.cellWidth / 2) {
-            return;
-          }
-        }
-        this.touchEnd.x = e.screenX;
-        this.touchEnd.y = e.screenY;
         this.translateX = this.translateStart.x - this.movementX * multyply
         this.events.emit({ name: 'move' });
         this.cd.detectChanges()
       });
   }
 
+
   private getLinearSwipeType(position: PointerPosition) {
     if (this.eventType !== 'horizontal-swipe' && this.eventType !== 'vertical-swipe') {
       const movementX = Math.abs(position.screenX - this.touchStart.x);
       const movementY = Math.abs(position.screenY - this.touchStart.y);
-      if (movementY > movementX) {
-        return 'vertical-swipe';
-      } else {
-        return 'horizontal-swipe';
-      }
+      return movementX / movementY >= 1 ? 'horizontal-swipe' : 'vertical-swipe';
+      // if (movementY * 4 > movementX) {
+      //   return 'vertical-swipe';
+      // } else {
+      //   return 'horizontal-swipe';
+      // }
     } else {
       return this.eventType;
     }
+  }
+
+  private greaterThanLimit(e: PointerPosition) {
+    const movement = Math.round(e.screenX - this.touchStart.x);
+    if (this.translateX < this.translateList[0]) {
+      if (this.translateX <= this.translateList[0] - this.cellWidth / 2 && movement > this.cellWidth / 2) {
+        return true;
+      }
+    }
+    else if (this.translateX > this.translateList[this.translateList.length - 1]) {
+      if (this.translateX >= this.translateList[this.translateList.length - 1] - this.cellWidth / 2 && movement < - this.cellWidth / 2) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private onTouchend() {
     this.pointerUp$.pipe(untilDestroyed(this)).subscribe(() => {
       this.cd.markForCheck();
       this.pointerPressed = false;
-      if (Math.abs(this.movementX) >= this.minSwipeDistance) {
+      if (Math.abs(this.movementX) >= this.minSwipeDistance && this.eventType === 'horizontal-swipe') {
         this.goToNearestSlide();
       }
       this.touchStart = { x: 0, y: 0 };
@@ -241,6 +261,7 @@ export class CarouselComponent implements OnChanges, AfterViewInit {
       .pipe(untilDestroyed(this))
       .subscribe((e) => {
         if (e.changedTouches[0].identifier !== this.touchIdentifier) return;
+        this.touchEvent = e;
         const { clientX, clientY, screenX, screenY } = e.changedTouches[0];
         this.pointerUp$.next({ clientX, clientY, screenX, screenY });
       });
@@ -332,6 +353,7 @@ export class CarouselComponent implements OnChanges, AfterViewInit {
   private calculateTranslateList() {
     this.translateList = [this.cells[0] - this.marginFirst];
     for (let i = 0; i < this.cells.length; i++) {
+
       if (i + this.slidesInView >= this.cells.length - 1) {
         let t = this.cells[this.cells.length - 1];
         const totalWidth = this.cellsRef.nativeElement.offsetWidth;
@@ -339,7 +361,8 @@ export class CarouselComponent implements OnChanges, AfterViewInit {
         if (t > 0) this.translateList.push(t)
         return;
       }
-      const nextCellTranslate = this.cells[i + 1] - (!this.cellsToShow ? this.margin : 0);
+
+      const nextCellTranslate = this.cells[i + 1] - this.marginFirst;
       this.translateList.push(nextCellTranslate)
     }
   }

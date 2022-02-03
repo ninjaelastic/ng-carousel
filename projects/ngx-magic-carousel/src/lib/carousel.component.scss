@@ -9,6 +9,7 @@
   user-select: none;
   transform-origin: top left;
   box-sizing: border-box;
+  //touch-action: pan-x pan-y;
 
   .carousel-container {
     overflow: hidden;
@@ -49,7 +50,6 @@
     border-radius: 100px;
     position: absolute;
     top: 50%;
-    margin-top: -20px;
     z-index: 10;
     cursor: pointer;
     box-shadow: 0 0 5px rgb(0 0 0 / 15%);
