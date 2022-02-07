@@ -13,6 +13,6 @@ import {ObserversModule} from "@angular/cdk/observers";
     ObserversModule],
   exports: [
     CarouselComponent
-  ]
+  ],
 })
-export class CarouselModule { }
+export class CarouselModule {}

@@ -3,7 +3,7 @@ import { BrowserModule } from '@angular/platform-browser';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
-import { CarouselModule } from 'ngx-magic-carousel';
+import { CarouselModule, MAGIC_CAROUSEL_MAX_ANGLE_DEGREES } from 'ngx-magic-carousel';
 import {FormsModule} from "@angular/forms";
 
 @NgModule({
@@ -16,7 +16,9 @@ import {FormsModule} from "@angular/forms";
     AppRoutingModule,
     CarouselModule
   ],
-  providers: [],
+  providers: [{
+    provide: MAGIC_CAROUSEL_MAX_ANGLE_DEGREES, useValue: 60
+  }],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

@@ -6,7 +6,7 @@ import {
   ElementRef,
   EventEmitter,
   HostBinding,
-  HostListener,
+  HostListener, Inject, Optional,
   Input,
   OnChanges,
   Output,
@@ -17,6 +17,7 @@ import {
 import {fromEvent, Subject, timer} from 'rxjs';
 import {UntilDestroy, untilDestroyed} from '@ngneat/until-destroy';
 import {distinctUntilChanged, filter, takeUntil, tap} from 'rxjs/operators';
+import {MAGIC_CAROUSEL_MAX_ANGLE_DEGREES} from "./tokens";
 
 @UntilDestroy()
 @Component({
@@ -117,12 +118,21 @@ export class CarouselComponent implements OnChanges, AfterViewInit {
   private touchIdentifier = 0;
   private timeFirstTouch = 0;
   private maxDelayBetweenTouches = 500;
+  private maxAngleDegrees = 45;
 
   constructor(
     private readonly elementRef: ElementRef,
     private readonly renderer2: Renderer2,
     private readonly cd: ChangeDetectorRef,
-  ) {}
+    @Optional() @Inject(MAGIC_CAROUSEL_MAX_ANGLE_DEGREES) maxAngleDegrees: number
+  ) {
+    if (maxAngleDegrees === null) return;
+    if (maxAngleDegrees < 0 || maxAngleDegrees > 90) {
+      console.warn(`The specified provider "MAGIC_CAROUSEL_MAX_ANGLE_DEGREES" value is incorrect. The value ${this.maxAngleDegrees} will be used.`)
+      return;
+    }
+    this.maxAngleDegrees = maxAngleDegrees;
+  }
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes.cellsToShow?.currentValue) {
@@ -250,7 +260,10 @@ export class CarouselComponent implements OnChanges, AfterViewInit {
       if (!this.touchEvent) return 'horizontal-swipe'
       const movementX = Math.abs(position.screenX - this.touchStart.x);
       const movementY = Math.abs(position.screenY - this.touchStart.y);
-      return movementX / movementY >= 1 ? 'horizontal-swipe' : 'vertical-swipe';
+      // if (Math.pow(movementX, 2) + Math.pow(movementY, 2) < 25) return this.eventType;
+      const angleRad = Math.atan( movementY / movementX);
+      const angleDegrees = angleRad * 180 / Math.PI;
+      return angleDegrees <= this.maxAngleDegrees ? 'horizontal-swipe' : 'vertical-swipe';
     } else {
       return this.eventType;
     }
