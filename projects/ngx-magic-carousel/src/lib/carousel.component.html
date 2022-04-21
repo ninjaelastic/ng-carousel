@@ -10,12 +10,14 @@
 </div>
 <div class="carousel-arrows" *ngIf="arrows">
   <div class="carousel-arrow carousel-arrow-prev"
+       data-cy="carousel-arrow-prev"
        *ngIf="!(hideArrowsByLimit && !prevAvailable())"
        [class.carousel-arrow-disabled]="!prevAvailable()"
        (click)="prev()"
   >
   </div>
   <div class="carousel-arrow carousel-arrow-next"
+       data-cy="carousel-arrow-next"
        *ngIf="nextCanBeShown()"
        [class.carousel-arrow-disabled]="!nextAvailable()"
        (click)="next()"
